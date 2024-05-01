@@ -1,6 +1,7 @@
 ---
 - name: Ping server
   hosts: all
+  become: true
   tasks:
     - name: Ping server using ansible ping module
       ansible.builtin.ping:
