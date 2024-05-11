@@ -1,0 +1,28 @@
+- name: Check for Pi-hole updates and notify via Telegram
+  hosts: dns
+  become: yes
+  vars:
+    telegram_bot_token: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN') }}"
+    telegram_chat_id: "{{ lookup('env', 'TELEGRAM_CHAT_ID') }}"
+
+  pre_tasks:
+    - name: Check if Pi-hole is running
+      command: systemctl is-active pihole-FTL.service
+      changed_when: false
+      register: pihole_status
+      failed_when: pihole_status.rc != 0
+
+  tasks:
+    - name: Check for Pi-hole updates
+      command: pihole -up --check-only
+      register: pihole_update_result
+      changed_when: "'[i] up to date' not in pihole_update_result.stdout"
+      when: pihole_status is succeeded
+
+    - name: Send Telegram notification
+      telegram:
+        token: "{{ telegram_bot_token }}"
+        chat_id: "{{ telegram_chat_id }}"
+        msg: "Pi-hole updates available: {{ pihole_update_result.stdout }}"
+        disable_notification: true
+      when: pihole_update_result.changed
