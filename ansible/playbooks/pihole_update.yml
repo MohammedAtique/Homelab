@@ -24,5 +24,4 @@
         token: "{{ telegram_bot_token }}"
         chat_id: "{{ telegram_chat_id }}"
         msg: "Pi-hole updates available: {{ pihole_update_result.stdout }}"
-        disable_notification: true
       when: pihole_update_result.changed
