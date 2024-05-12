@@ -32,7 +32,7 @@
       when: pihole_service_status is succeeded
 
     - name: Send Telegram notification about updates
-      community.general.telegram:
+      telegram:
         token: "{{ telegram_bot_token }}"
         api_args:
           chat_id: "{{ telegram_chat_id }}"
