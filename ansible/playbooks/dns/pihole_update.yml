@@ -38,7 +38,7 @@
           chat_id: "{{ telegram_chat_id }}"
           parse_mode: "markdown"
           text: |
-            Pi-hole updates available:
+            Pi-hole updates available on {{ ansible_hostname }}:
             {% set core_line = pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Pi-hole Core:') | list %}
             {% if core_line %}
             Pi-hole Core: {{ core_line[0].split(':', 1)[1].strip() }} {% if 'up to date' in core_line[0] %}🟢{% elif 'update available' in core_line[0] %}🟡{% endif %}
