@@ -31,6 +31,10 @@
       changed_when: "'update available' in pihole_update_result.stdout"
       when: pihole_service_status is succeeded
 
+    - name: Debug Pi-hole update lines
+      debug:
+        msg: "{{ pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Pi-hole Core:') | list }}"
+
     - name: Send Telegram notification about updates
       telegram:
         token: "{{ telegram_bot_token }}"
@@ -42,4 +46,6 @@
             Pi-hole Core: {{ pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Pi-hole Core:') | list | first | regex_replace('^.*:(.*)$', '\\1') | trim }} {% if 'up to date' in pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Pi-hole Core:') | list | first %}🟢{% elif 'update available' in pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Pi-hole Core:') | list | first %}🟡{% endif %}
             Web Interface: {{ pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Web Interface:') | list | first | regex_replace('^.*:(.*)$', '\\1') | trim }} {% if 'up to date' in pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Web Interface:') | list | first %}🟢{% elif 'update available' in pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Web Interface:') | list | first %}🟡{% endif %}
             FTL: {{ pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] FTL:') | list | first | regex_replace('^.*:(.*)$', '\\1') | trim }} {% if 'up to date' in pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] FTL:') | list | first %}🟢{% elif 'update available' in pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] FTL:') | list | first %}🟡{% endif %}
+        disable_web_page_preview: true
+        disable_notification: true
       when: pihole_update_result.changed and pihole_service_status is succeeded
