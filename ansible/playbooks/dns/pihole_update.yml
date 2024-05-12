@@ -41,11 +41,11 @@
             Pi-hole updates available:
             {% for line in pihole_update_result.stdout_lines %}
             {% if 'Pi-hole Core:' in line %}
-            Pi-hole Core: {{ line.split(':', 1)[1].strip() }}
+            Pi-hole Core: {% if 'up to date' in line %}<code style="color: green">{{ line.split(':', 1)[1].strip() }}</code>{% else %}<code style="color: yellow">{{ line.split(':', 1)[1].strip() }}</code>{% endif %}
             {% elif 'Web Interface:' in line %}
-            Web Interface: {{ line.split(':', 1)[1].strip() }}
+            Web Interface: {% if 'up to date' in line %}<code style="color: green">{{ line.split(':', 1)[1].strip() }}</code>{% else %}<code style="color: yellow">{{ line.split(':', 1)[1].strip() }}</code>{% endif %}
             {% elif 'FTL:' in line %}
-            FTL: {{ line.split(':', 1)[1].strip() }}
+            FTL: {% if 'up to date' in line %}<code style="color: green">{{ line.split(':', 1)[1].strip() }}</code>{% else %}<code style="color: yellow">{{ line.split(':', 1)[1].strip() }}</code>{% endif %}
             {% endif %}
             {% endfor %}
           disable_web_page_preview: true
