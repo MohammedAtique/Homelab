@@ -14,9 +14,15 @@
       register: service_facts
 
     - name: Check if Pi-hole service is running
+      command: systemctl is-active {{ pihole_service_name }}
+      register: pihole_service_status
+      changed_when: false
+      when: service_facts.ansible_facts.ansible_service_mgr == 'systemd'
+
+    - name: Notify if Pi-hole service is not running
       debug:
         msg: "Pi-hole service is not running. Please start it."
-      when: pihole_service_name not in service_facts.ansible_facts.services
+      when: pihole_service_status.rc != 0
 
     - name: Check for Pi-hole updates
       command: pihole -up --check-only
