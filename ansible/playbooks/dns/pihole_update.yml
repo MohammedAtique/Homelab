@@ -35,7 +35,7 @@
       register: pihole_service_status
       changed_when: false
       failed_when: pihole_service_status.rc != 0
-      when: service_facts.ansible_facts.ansible_service_mgr == 'systemd' and ansible_ping_result.ping == 'success'
+      when: service_facts.ansible_facts.ansible_service_mgr == 'systemd' and ansible_ping_result.ping == 'pong'
 
     - name: Send Telegram notification if Pi-hole service is down
       telegram:
@@ -46,13 +46,13 @@
           text: "Pi-hole on {{ ansible_hostname }} is not running 🔴"
           disable_web_page_preview: true
           disable_notification: true
-      when: pihole_service_status is failed and ansible_ping_result.ping == 'success'
+      when: pihole_service_status is failed and ansible_ping_result.ping == 'pong'
 
     - name: Check for Pi-hole updates
       command: pihole -up --check-only
       register: pihole_update_result
       changed_when: "'update available' in pihole_update_result.stdout"
-      when: pihole_service_status is succeeded and ansible_ping_result.ping == 'success'
+      when: pihole_service_status is succeeded and ansible_ping_result.ping == 'pong'
 
     - name: Send Telegram notification about updates
       telegram:
@@ -78,4 +78,4 @@
             {% endif %}
           disable_web_page_preview: true
           disable_notification: true
-      when: pihole_update_result.changed and pihole_service_status is succeeded and ansible_ping_result.ping == 'success'
+      when: pihole_update_result.changed and pihole_service_status is succeeded and ansible_ping_result.ping == 'pong'
