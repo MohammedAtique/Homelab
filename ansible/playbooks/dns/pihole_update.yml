@@ -40,8 +40,12 @@
           text: |
             Pi-hole updates available:
             {% for line in pihole_update_result.stdout_lines %}
-            {% if 'Pi-hole Core:' in line or 'Web Interface:' in line or 'FTL:' in line %}
-            {{ line.split(':')[0].strip().replace('i ', '') }}: {{ line.split(':')[1].strip() }}
+            {% if 'Pi-hole Core:' in line %}
+            Pi-hole Core: {{ line.split(':', 1)[1].strip() }}
+            {% elif 'Web Interface:' in line %}
+            Web Interface: {{ line.split(':', 1)[1].strip() }}
+            {% elif 'FTL:' in line %}
+            FTL: {{ line.split(':', 1)[1].strip() }}
             {% endif %}
             {% endfor %}
           disable_web_page_preview: true
