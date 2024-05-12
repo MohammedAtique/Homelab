@@ -41,7 +41,7 @@
             Pi-hole updates available:
             {% for line in pihole_update_result.stdout_lines %}
             {% if 'Pi-hole Core:' in line or 'Web Interface:' in line or 'FTL:' in line %}
-            {{ line.lstrip(' i').strip() }}
+            {{ line.split(':')[0].strip().replace('i ', '') }}: {{ line.split(':')[1].strip() }}
             {% endif %}
             {% endfor %}
           disable_web_page_preview: true
