@@ -1,4 +1,4 @@
-- name: Check for Pi-hole updates and notify via Telegram
+- name: Check for c
   hosts: dns
   become: yes
 
@@ -26,19 +26,16 @@
       failed_when: false
       when: service_facts.ansible_facts.ansible_service_mgr == 'systemd' and ansible_ping_result.ping == 'pong'
 
-    - block:
-        - name: Send Telegram notification if Pi-hole service is down
-          telegram:
-            token: "{{ telegram_bot_token_2 }}"
-            api_args:
-              chat_id: "{{ telegram_chat_id_2 }}"
-              parse_mode: "markdown"
-              text: "Pi-hole on {{ ansible_hostname }} is not running 🔴"
-              disable_web_page_preview: true
-              disable_notification: true
-          when: pihole_service_status.rc != 0 and service_facts.ansible_facts.ansible_service_mgr == 'systemd' and ansible_ping_result.ping == 'pong'
+    - name: Send Telegram notification if Pi-hole service is down
+      telegram:
+        token: "{{ telegram_bot_token_2 }}"
+        api_args:
+          chat_id: "{{ telegram_chat_id_2 }}"
+          parse_mode: "markdown"
+          text: "Pi-hole on {{ ansible_hostname }} is not running 🔴"
+          disable_web_page_preview: true
+          disable_notification: true
       when: pihole_service_status.rc != 0 and service_facts.ansible_facts.ansible_service_mgr == 'systemd' and ansible_ping_result.ping == 'pong'
-      ignore_errors: yes
 
     - name: Check for Pi-hole updates
       command: pihole -up --check-only
