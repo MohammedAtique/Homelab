@@ -39,7 +39,7 @@
           parse_mode: "markdown"
           text: |
             Pi-hole updates available:
-            {{ pihole_update_result.stdout | regex_findall('(?m)^.*?(Pi-hole Core|Web Interface|FTL).*$') | join('\n') }}
+            {{ pihole_update_result.stdout | regex_findall('(?m)^.*?(Pi-hole Core:.*|Web Interface:.*|FTL:.*$)') | join('\n') }}
           disable_web_page_preview: true
           disable_notification: true
       when: pihole_update_result.changed and pihole_service_status is succeeded
