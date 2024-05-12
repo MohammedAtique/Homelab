@@ -28,7 +28,7 @@
     - name: Check for Pi-hole updates
       command: pihole -up --check-only
       register: pihole_update_result
-      changed_when: "'up to date' not in pihole_update_result.stdout"
+      changed_when: "'update available' in pihole_update_result.stdout"
       when: pihole_service_status is succeeded
 
     - name: Send Telegram notification about updates
