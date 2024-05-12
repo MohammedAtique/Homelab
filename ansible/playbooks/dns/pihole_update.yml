@@ -31,6 +31,10 @@
       changed_when: "'update available' in pihole_update_result.stdout"
       when: pihole_service_status is succeeded
 
+    - name: Debug pihole_update_result.stdout_lines
+      debug:
+        msg: "{{ pihole_update_result.stdout_lines }}"
+
     - name: Send Telegram notification about updates
       telegram:
         token: "{{ telegram_bot_token }}"
@@ -42,6 +46,4 @@
             Pi-hole Core: {{ pihole_update_result.stdout_lines[0].split(':', 1)[1].strip() }} {% if 'up to date' in pihole_update_result.stdout_lines[0] %}🟢{% elif 'update available' in pihole_update_result.stdout_lines[0] %}🟡{% endif %}
             Web Interface: {{ pihole_update_result.stdout_lines[1].split(':', 1)[1].strip() }} {% if 'up to date' in pihole_update_result.stdout_lines[1] %}🟢{% elif 'update available' in pihole_update_result.stdout_lines[1] %}🟡{% endif %}
             FTL: {{ pihole_update_result.stdout_lines[2].split(':', 1)[1].strip() }} {% if 'up to date' in pihole_update_result.stdout_lines[2] %}🟢{% elif 'update available' in pihole_update_result.stdout_lines[2] %}🟡{% endif %}
-          disable_web_page_preview: true
-          disable_notification: true
       when: pihole_update_result.changed and pihole_service_status is succeeded
