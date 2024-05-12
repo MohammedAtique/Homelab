@@ -37,7 +37,9 @@
         api_args:
           chat_id: "{{ telegram_chat_id }}"
           parse_mode: "markdown"
-          text: "Pi-hole updates available: {{ pihole_update_result.stdout }}"
+          text: |
+            Pi-hole updates available:
+            {{ pihole_update_result.stdout | regex_replace('^.*?Checking for updates.*?\n', '') | regex_replace('^.*?i ', '') | regex_replace('^.*?K.*?\n', '') }}
           disable_web_page_preview: true
           disable_notification: true
       when: pihole_update_result.changed and pihole_service_status is succeeded
