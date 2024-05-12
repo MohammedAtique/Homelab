@@ -47,6 +47,7 @@
             {% elif 'FTL:' in line %}
             FTL: {{ line.split(':', 1)[1].strip() }} {% if 'up to date' in line %}🟢{% elif 'update available' in line %}🟡{% endif %}
             {% endif %}
+            {% if not loop.last %}\n{% endif %}
             {% endfor %}
           disable_web_page_preview: true
           disable_notification: true
