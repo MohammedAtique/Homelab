@@ -3,11 +3,27 @@
   become: yes
 
   vars:
-    telegram_bot_token: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN') }}"
-    telegram_chat_id: "{{ lookup('env', 'TELEGRAM_CHAT_ID') }}"
+    telegram_bot_token_1: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN_1') }}"
+    telegram_chat_id_1: "{{ lookup('env', 'TELEGRAM_CHAT_ID_1') }}"
+    telegram_bot_token_2: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN_2') }}"
+    telegram_chat_id_2: "{{ lookup('env', 'TELEGRAM_CHAT_ID_2') }}"
     pihole_service_name: "pihole-FTL.service"
 
   tasks:
+    - name: Check if server is running and pingable
+      wait_for_connection:
+        delay: 10
+        timeout: 300
+
+    - name: Send Telegram notification if server is down
+      telegram:
+        token: "{{ telegram_bot_token_2 }}"
+        chat_id: "{{ telegram_chat_id_2 }}"
+        parse_mode: "markdown"
+        text: "{{ ansible_hostname }} is down 🔴"
+        disable_web_page_preview: true
+        disable_notification: true
+
     - name: Gather service facts
       setup:
         filter: ansible_service_mgr
@@ -18,41 +34,45 @@
       register: pihole_service_status
       changed_when: false
       failed_when: pihole_service_status.rc != 0
-      when: service_facts.ansible_facts.ansible_service_mgr == 'systemd'
+      when: service_facts.ansible_facts.ansible_service_mgr == 'systemd' and ansible_ping_result.ping == 'pong'
 
-    - name: Notify if Pi-hole service is not running
-      debug:
-        msg: "Pi-hole service is not running. Please start it."
-      when: pihole_service_status is failed
+    - name: Send Telegram notification if Pi-hole service is down
+      telegram:
+        token: "{{ telegram_bot_token_2 }}"
+        chat_id: "{{ telegram_chat_id_2 }}"
+        parse_mode: "markdown"
+        text: "Pi-hole on {{ ansible_hostname }} is not running 🔴"
+        disable_web_page_preview: true
+        disable_notification: true
+      when: pihole_service_status is failed and ansible_ping_result.ping == 'pong'
 
     - name: Check for Pi-hole updates
       command: pihole -up --check-only
       register: pihole_update_result
       changed_when: "'update available' in pihole_update_result.stdout"
-      when: pihole_service_status is succeeded
+      when: pihole_service_status is succeeded and ansible_ping_result.ping == 'pong'
 
     - name: Send Telegram notification about updates
       telegram:
-        token: "{{ telegram_bot_token }}"
-        api_args:
-          chat_id: "{{ telegram_chat_id }}"
-          parse_mode: "markdown"
-          text: |
-            Pi-hole updates available on {{ ansible_hostname }}:
-            {% set core_line = pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Pi-hole Core:') | list %}
-            {% if core_line %}
-            Pi-hole Core: {{ core_line[0].split(':', 1)[1].strip() }} {% if 'up to date' in core_line[0] %}🟢{% elif 'update available' in core_line[0] %}🟡{% endif %}
-            {% endif %}
+        token: "{{ telegram_bot_token_1 }}"
+        chat_id: "{{ telegram_chat_id_1 }}"
+        parse_mode: "markdown"
+        text: |
+          Pi-hole updates available on {{ ansible_hostname }}:
+          {% set core_line = pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Pi-hole Core:') | list %}
+          {% if core_line %}
+          Pi-hole Core: {{ core_line[0].split(':', 1)[1].strip() }} {% if 'up to date' in core_line[0] %}🟢{% elif 'update available' in core_line[0] %}🟡{% endif %}
+          {% endif %}
 
-            {% set web_interface_line = pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Web Interface:') | list %}
-            {% if web_interface_line %}
-            Web Interface: {{ web_interface_line[0].split(':', 1)[1].strip() }} {% if 'up to date' in web_interface_line[0] %}🟢{% elif 'update available' in web_interface_line[0] %}🟡{% endif %}
-            {% endif %}
+          {% set web_interface_line = pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Web Interface:') | list %}
+          {% if web_interface_line %}
+          Web Interface: {{ web_interface_line[0].split(':', 1)[1].strip() }} {% if 'up to date' in web_interface_line[0] %}🟢{% elif 'update available' in web_interface_line[0] %}🟡{% endif %}
+          {% endif %}
 
-            {% set ftl_line = pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] FTL:') | list %}
-            {% if ftl_line %}
-            FTL: {{ ftl_line[0].split(':', 1)[1].strip() }} {% if 'up to date' in ftl_line[0] %}🟢{% elif 'update available' in ftl_line[0] %}🟡{% endif %}
-            {% endif %}
-          disable_web_page_preview: true
-          disable_notification: true
-      when: pihole_update_result.changed and pihole_service_status is succeeded
+          {% set ftl_line = pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] FTL:') | list %}
+          {% if ftl_line %}
+          FTL: {{ ftl_line[0].split(':', 1)[1].strip() }} {% if 'up to date' in ftl_line[0] %}🟢{% elif 'update available' in ftl_line[0] %}🟡{% endif %}
+          {% endif %}
+        disable_web_page_preview: true
+        disable_notification: true
+      when: pihole_update_result.changed and pihole_service_status is succeeded and ansible_ping_result.ping == 'pong'
