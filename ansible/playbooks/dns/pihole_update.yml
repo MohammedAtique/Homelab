@@ -10,20 +10,9 @@
     pihole_service_name: "pihole-FTL.service"
 
   tasks:
-    - name: Check if server is running and pingable
+    - name: Check if server is pingable
       ansible.builtin.ping:
       register: ansible_ping_result
-
-    - name: Send Telegram notification if server is down
-      telegram:
-        token: "{{ telegram_bot_token_2 }}"
-        api_args:
-          chat_id: "{{ telegram_chat_id_2 }}"
-          parse_mode: "markdown"
-          text: "{{ ansible_hostname }} is down 🔴"
-          disable_web_page_preview: true
-          disable_notification: true
-      when: ansible_ping_result.ping == 'failed'
 
     - name: Gather service facts
       setup:
@@ -34,19 +23,22 @@
       command: systemctl is-active {{ pihole_service_name }}
       register: pihole_service_status
       changed_when: false
+      failed_when: false
       when: service_facts.ansible_facts.ansible_service_mgr == 'systemd' and ansible_ping_result.ping == 'pong'
 
-    - name: Send Telegram notification if Pi-hole service is down
-      telegram:
-        token: "{{ telegram_bot_token_2 }}"
-        api_args:
-          chat_id: "{{ telegram_chat_id_2 }}"
-          parse_mode: "markdown"
-          text: "Pi-hole on {{ ansible_hostname }} is not running 🔴"
-          disable_web_page_preview: true
-          disable_notification: true
-      failed_when: pihole_service_status.rc != 0
-      when: pihole_service_status is failed and ansible_ping_result.ping == 'pong'
+    - block:
+        - name: Send Telegram notification if Pi-hole service is down
+          telegram:
+            token: "{{ telegram_bot_token_2 }}"
+            api_args:
+              chat_id: "{{ telegram_chat_id_2 }}"
+              parse_mode: "markdown"
+              text: "Pi-hole on {{ ansible_hostname }} is not running 🔴"
+              disable_web_page_preview: true
+              disable_notification: true
+          when: pihole_service_status.rc != 0 and service_facts.ansible_facts.ansible_service_mgr == 'systemd' and ansible_ping_result.ping == 'pong'
+      when: pihole_service_status.rc != 0 and service_facts.ansible_facts.ansible_service_mgr == 'systemd' and ansible_ping_result.ping == 'pong'
+      ignore_errors: yes
 
     - name: Check for Pi-hole updates
       command: pihole -up --check-only
