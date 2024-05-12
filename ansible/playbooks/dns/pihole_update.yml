@@ -17,22 +17,23 @@
       command: systemctl is-active {{ pihole_service_name }}
       register: pihole_service_status
       changed_when: false
+      failed_when: pihole_service_status.rc != 0
       when: service_facts.ansible_facts.ansible_service_mgr == 'systemd'
 
     - name: Notify if Pi-hole service is not running
       debug:
         msg: "Pi-hole service is not running. Please start it."
-      when: pihole_service_status.rc != 0
+      when: pihole_service_status is failed
 
     - name: Check for Pi-hole updates
       command: pihole -up --check-only
       register: pihole_update_result
       changed_when: "'up to date' not in pihole_update_result.stdout"
-      when: pihole_service_name in service_facts.ansible_facts.services
+      when: pihole_service_status is succeeded
 
     - name: Send Telegram notification about updates
       community.general.telegram:
         token: "{{ telegram_bot_token }}"
         chat_id: "{{ telegram_chat_id }}"
         msg: "Pi-hole updates available: {{ pihole_update_result.stdout }}"
-      when: pihole_update_result.changed and pihole_service_name in service_facts.ansible_facts.services
+      when: pihole_update_result.changed and pihole_service_status is succeeded
