@@ -1,1 +1,29 @@
----
+- name: Updates Pi-hole
+  hosts: dns
+  become: yes
+
+  vars:
+    telegram_bot_token_1: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN_1') }}"
+    telegram_chat_id_1: "{{ lookup('env', 'TELEGRAM_CHAT_ID_1') }}"
+
+  tasks:
+    - name: Check if server is pingable
+      ansible.builtin.ping:
+      register: ansible_ping_result
+
+    - name: Updates Pi-hole
+      command: pihole -up
+      register: pihole_update_result
+      changed_when: "'Updated Successfully' in pihole_update_result.stdout"
+      when: ansible_ping_result.ping == 'pong'
+
+    - name: Send Telegram notification about updates
+      telegram:
+        token: "{{ telegram_bot_token_1 }}"
+        api_args:
+          chat_id: "{{ telegram_chat_id_1 }}"
+          parse_mode: "markdown"
+          text: "Pi-hole on {{ ansible_hostname }} updated ✅"
+          disable_web_page_preview: true
+          disable_notification: true
+      when: pihole_update_result.changed and ansible_ping_result.ping == 'pong'
