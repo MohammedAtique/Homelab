@@ -1,27 +1,32 @@
 - name: Check for Pi-hole updates and notify via Telegram
   hosts: dns
   become: yes
+
   vars:
     telegram_bot_token: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN') }}"
     telegram_chat_id: "{{ lookup('env', 'TELEGRAM_CHAT_ID') }}"
-
-  pre_tasks:
-    - name: Check if Pi-hole is running
-      command: systemctl is-active pihole-FTL.service
-      changed_when: false
-      register: pihole_status
-      failed_when: pihole_status.rc != 0
+    pihole_service_name: "pihole-FTL.service"
 
   tasks:
+    - name: Gather service facts
+      setup:
+        filter: ansible_service_mgr
+      register: service_facts
+
+    - name: Check if Pi-hole service is running
+      debug:
+        msg: "Pi-hole service is not running. Please start it."
+      when: pihole_service_name not in service_facts.ansible_facts.services
+
     - name: Check for Pi-hole updates
       command: pihole -up --check-only
       register: pihole_update_result
-      changed_when: "'[i] up to date' not in pihole_update_result.stdout"
-      when: pihole_status is succeeded
+      changed_when: "'up to date' not in pihole_update_result.stdout"
+      when: pihole_service_name in service_facts.ansible_facts.services
 
-    - name: Send Telegram notification
-      telegram:
+    - name: Send Telegram notification about updates
+      community.general.telegram:
         token: "{{ telegram_bot_token }}"
         chat_id: "{{ telegram_chat_id }}"
         msg: "Pi-hole updates available: {{ pihole_update_result.stdout }}"
-      when: pihole_update_result.changed
+      when: pihole_update_result.changed and pihole_service_name in service_facts.ansible_facts.services
