@@ -39,11 +39,20 @@
           parse_mode: "markdown"
           text: |
             Pi-hole updates available:
-            Pi-hole Core: {{ pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Pi-hole Core:') | list | first | regex_replace('^.*:(.*)$', '\\1') | trim }} {% if 'up to date' in pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Pi-hole Core:') | list | first %}🟢{% elif 'update available' in pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Pi-hole Core:') | list | first %}🟡{% endif %}
-            
-            Web Interface: {{ pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Web Interface:') | list | first | regex_replace('^.*:(.*)$', '\\1') | trim }} {% if 'up to date' in pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Web Interface:') | list | first %}🟢{% elif 'update available' in pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Web Interface:') | list | first %}🟡{% endif %}
-            
-            FTL: {{ pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] FTL:') | list | first | regex_replace('^.*:(.*)$', '\\1') | trim }} {% if 'up to date' in pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] FTL:') | list | first %}🟢{% elif 'update available' in pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] FTL:') | list | first %}🟡{% endif %}
+            {% set core_line = pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Pi-hole Core:') | list %}
+            {% if core_line %}
+            Pi-hole Core: {{ core_line[0].split(':', 1)[1].strip() }} {% if 'up to date' in core_line[0] %}🟢{% elif 'update available' in core_line[0] %}🟡{% endif %}
+            {% endif %}
+
+            {% set web_interface_line = pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] Web Interface:') | list %}
+            {% if web_interface_line %}
+            Web Interface: {{ web_interface_line[0].split(':', 1)[1].strip() }} {% if 'up to date' in web_interface_line[0] %}🟢{% elif 'update available' in web_interface_line[0] %}🟡{% endif %}
+            {% endif %}
+
+            {% set ftl_line = pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] FTL:') | list %}
+            {% if ftl_line %}
+            FTL: {{ ftl_line[0].split(':', 1)[1].strip() }} {% if 'up to date' in ftl_line[0] %}🟢{% elif 'update available' in ftl_line[0] %}🟡{% endif %}
+            {% endif %}
           disable_web_page_preview: true
           disable_notification: true
       when: pihole_update_result.changed and pihole_service_status is succeeded
