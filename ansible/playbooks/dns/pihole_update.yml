@@ -41,11 +41,11 @@
             Pi-hole updates available:
             {% for line in pihole_update_result.stdout_lines %}
             {% if 'Pi-hole Core:' in line %}
-            Pi-hole Core: {% if 'up to date' in line %}<code style="color: #00FF00">up to date</code>{% else %}<code style="color: #FFFF00">update available</code>{% endif %}
+            Pi-hole Core: {% if 'up to date' in line %}```fix\nup to date```{% else %}```yaml\nupdate available```{% endif %}
             {% elif 'Web Interface:' in line %}
-            Web Interface: {% if 'up to date' in line %}<code style="color: #00FF00">up to date</code>{% else %}<code style="color: #FFFF00">update available</code>{% endif %}
+            Web Interface: {% if 'up to date' in line %}```fix\nup to date```{% else %}```yaml\nupdate available```{% endif %}
             {% elif 'FTL:' in line %}
-            FTL: {% if 'up to date' in line %}<code style="color: #00FF00">up to date</code>{% else %}<code style="color: #FFFF00">update available</code>{% endif %}
+            FTL: {% if 'up to date' in line %}```fix\nup to date```{% else %}```yaml\nupdate available```{% endif %}
             {% endif %}
             {% endfor %}
           disable_web_page_preview: true
