@@ -43,6 +43,7 @@
             {% if 'Pi-hole Core:' in line or 'Web Interface:' in line or 'FTL:' in line %}
             {{ line }}
             {% endif %}
-            {% endfor %}          disable_web_page_preview: true
+            {% endfor %}
+          disable_web_page_preview: true
           disable_notification: true
       when: pihole_update_result.changed and pihole_service_status is succeeded
