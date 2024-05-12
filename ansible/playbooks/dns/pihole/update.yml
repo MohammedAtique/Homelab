@@ -14,7 +14,7 @@
     - name: Updates Pi-hole
       command: pihole -up
       register: pihole_update_result
-      changed_when: "'Updated Successfully' in pihole_update_result.stdout"
+      changed_when: "'Update complete' in pihole_update_result.stdout"
       when: ansible_ping_result.ping == 'pong'
 
     - name: Send Telegram notification about updates
