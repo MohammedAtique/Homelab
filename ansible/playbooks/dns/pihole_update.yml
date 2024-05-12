@@ -36,6 +36,7 @@
         token: "{{ telegram_bot_token }}"
         api_args:
           chat_id: "{{ telegram_chat_id }}"
+          parse_mode: "markdown"
           msg: "Pi-hole updates available: {{ pihole_update_result.stdout }}"
           disable_web_page_preview: true
           disable_notification: true
