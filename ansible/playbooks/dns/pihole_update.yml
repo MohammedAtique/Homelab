@@ -34,6 +34,9 @@
     - name: Send Telegram notification about updates
       community.general.telegram:
         token: "{{ telegram_bot_token }}"
-        chat_id: "{{ telegram_chat_id }}"
-        msg: "Pi-hole updates available: {{ pihole_update_result.stdout }}"
+        api_args:
+          chat_id: "{{ telegram_chat_id }}"
+          msg: "Pi-hole updates available: {{ pihole_update_result.stdout }}"
+          disable_web_page_preview: true
+          disable_notification: true
       when: pihole_update_result.changed and pihole_service_status is succeeded
