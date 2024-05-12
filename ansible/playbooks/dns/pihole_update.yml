@@ -45,6 +45,6 @@
             Web Interface: {{ web_interface_line.split(':', 1)[1].strip() if web_interface_line else '' }} {% if web_interface_line and 'up to date' in web_interface_line %}🟢{% elif web_interface_line and 'update available' in web_interface_line %}🟡{% endif %}
             {% set ftl_line = pihole_update_result.stdout_lines | select('search', '^\\s*\\[i\\] FTL:') | list | first %}
             FTL: {{ ftl_line.split(':', 1)[1].strip() if ftl_line else '' }} {% if ftl_line and 'up to date' in ftl_line %}🟢{% elif ftl_line and 'update available' in ftl_line %}🟡{% endif %}
-        disable_web_page_preview: true
-        disable_notification: true
+          disable_web_page_preview: true
+          disable_notification: true
       when: pihole_update_result.changed and pihole_service_status is succeeded
