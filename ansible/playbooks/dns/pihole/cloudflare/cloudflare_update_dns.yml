@@ -1,0 +1,68 @@
+---
+- name: Update DNS records in Cloudflare
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') }}"
+
+  tasks:
+    - name: Get the current public IP address
+      uri:
+        url: "https://ifconfig.me/ip"
+        return_content: yes
+        headers:
+          Accept: "text/plain"
+      register: ifconfig_me_response
+
+    - name: Set new IP address fact
+      set_fact:
+        new_ip_address: "{{ ifconfig_me_response.content.strip() }}"
+
+    - name: Get Cloudflare domains
+      uri:
+        url: "https://api.cloudflare.com/client/v4/zones"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ cloudflare_api_token }}"
+          Content-Type: "application/json"
+        return_content: yes
+      register: zones_response
+
+    - name: Set Cloudflare domain fact
+      set_fact:
+        cloudflare_domain: "{{ (zones_response.json.result | map(attribute='name') | list)[0] }}"  # Selects the first domain. Adjust for multi-domain setup.
+
+    - name: Set Cloudflare zone ID fact
+      set_fact:
+        cloudflare_zone_id: "{{ (zones_response.json.result | selectattr('name', 'equalto', cloudflare_domain) | list)[0].id }}" # Selects the first zone. Adjust for multi-zone setup.
+
+    - name: Get all DNS records
+      community.general.cloudflare_dns:
+        zone: "{{ cloudflare_zone_id }}"
+        account_api_token: "{{ cloudflare_api_token }}"
+        type: A
+      register: dns_records
+
+    - name: Update DNS records
+      community.general.cloudflare_dns:
+        zone: "{{ cloudflare_zone_id }}"
+        account_api_token: "{{ cloudflare_api_token }}"
+        record: "{{ item.name }}"
+        type: "{{ item.type }}"
+        value: "{{ new_ip_address }}"
+        state: present
+      with_items: "{{ dns_records.records }}"
+      register: dns_update_result
+
+    - name: Print DNS update result
+      debug:
+        msg: "DNS record for {{ item.record }} updated successfully."
+      with_items: "{{ dns_update_result.results }}"
+      when: item.changed
+
+    - name: Print DNS update failure
+      debug:
+        msg: "Failed to update DNS record for {{ item.record }}."
+      with_items: "{{ dns_update_result.results }}"
+      when: item.failed
