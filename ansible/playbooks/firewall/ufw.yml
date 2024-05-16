@@ -1,0 +1,62 @@
+---
+- name: Configure UFW
+  hosts: proxy
+  become: yes
+  vars:
+    local_subnet: "{{ lookup('env', 'LOCAL_SUBNET') }}"
+  tasks:
+    - name: Check if server is pingable
+      ansible.builtin.ping:
+      register: ansible_ping_result
+
+    - name: Set UFW default policies
+      ufw:
+        policy: "{{ item.policy }}"
+      loop:
+        - { policy: deny, direction: incoming }
+        - { policy: allow, direction: outgoing }
+      when: ansible_ping_result.ping == 'pong'
+
+    - name: Allow traffic from local subnet
+      ufw:
+        rule: allow
+        src: "{{ local_subnet }}"
+      when: ansible_ping_result.ping == 'pong'
+
+    - name: Allow SSH from local subnet
+      ufw:
+        rule: allow
+        src: "{{ local_subnet }}"
+        port: 22
+        proto: tcp
+      when: ansible_ping_result.ping == 'pong'
+
+    - name: Fetch Cloudflare IPs
+      uri:
+        url: "https://www.cloudflare.com/ips-v{{ item }}"
+        return_content: yes
+      loop:
+        - 4
+        - 6
+      register: cloudflare_ips
+      when: ansible_ping_result.ping == 'pong'
+
+    - name: Allow incoming traffic on port 443 from Cloudflare IPs
+      ufw:
+        rule: allow
+        src: "{{ item }}"
+        port: 443
+        proto: tcp
+        comment: "Cloudflare IP"
+      loop: "{{ cloudflare_ips.results | map(attribute='content') | map('split', '\n') | list | flatten }}"
+      when: ansible_ping_result.ping == 'pong'
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+      when: ansible_ping_result.ping == 'pong'
+
+    - name: Reload UFW
+      ufw:
+        state: reloaded
+      when: ansible_ping_result.ping == 'pong'

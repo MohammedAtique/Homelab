@@ -1,3 +1,4 @@
+---
 - name: Check for Pi-hole updates
   hosts: dns
   become: yes

@@ -1,3 +1,4 @@
+---
 - name: Updates Pi-hole
   hosts: dns
   serial: 1
