@@ -40,7 +40,7 @@
     - name: Get all DNS records
       community.general.cloudflare_dns:
         zone: "{{ cloudflare_zone_id }}"
-        account_api_token: "{{ cloudflare_api_token }}"
+        api_token: "{{ cloudflare_api_token }}"
         type: A
         value: "placeholder_value"
       register: dns_records
