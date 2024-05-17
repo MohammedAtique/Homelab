@@ -39,7 +39,7 @@
 
     - name: Get all DNS records
       community.general.cloudflare_dns:
-        zone: "{{ cloudflare_domain }}"
+        zone: "{{ cloudflare_zone_id }}"
         api_token: "{{ cloudflare_api_token }}"
         type: A
         value: "placeholder_value"
