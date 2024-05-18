@@ -55,7 +55,7 @@
     - name: Update DNS records
       community.general.cloudflare_dns:
         zone: "{{ cloudflare_domain }}"
-        account_api_token: "{{ cloudflare_api_token }}"
+        api_token: "{{ cloudflare_api_token }}"
         record: "{{ item.name }}"
         type: "A"
         proxied: true
