@@ -42,7 +42,7 @@
         zone: "{{ cloudflare_zone_id }}"
         api_token: "{{ cloudflare_api_token }}"
         type: A
-        value: "placeholder_value"
+        value: "{{ cloudflare_domain }}"
       register: dns_records
 
     - name: Update DNS records
