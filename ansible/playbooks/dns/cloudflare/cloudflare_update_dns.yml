@@ -59,7 +59,6 @@
         record: "{{ item.name }}"
         type: "{{ item.type }}"
         proxied: "{{ item.proxied }}"
-        comment: "{{ item.comment }}"
         value: "{{ new_ip_address }}"
         solo: true
         state: present
