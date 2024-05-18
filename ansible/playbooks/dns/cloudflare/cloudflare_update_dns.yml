@@ -52,6 +52,10 @@
       set_fact:
         dns_records: "{{ dns_records_response.json.result }}"
 
+    - name: Filter A records to update
+      set_fact:
+        a_records_to_update: "{{ dns_records | selectattr('type', 'equalto', 'A') | list }}"
+
     - name: Update DNS records
       community.general.cloudflare_dns:
         zone: "{{ cloudflare_domain }}"
@@ -67,11 +71,11 @@
     - name: Print DNS update result
       debug:
         msg: "DNS record for {{ item.item.name }} updated successfully."
-      with_items: "{{ dns_update_results.results }}"
+      with_items: "{{ dns_update_result.results }}"
       when: item.changed
 
     - name: Print DNS update failure
       debug:
         msg: "Failed to update DNS record for {{ item.item.name }}."
-      with_items: "{{ dns_update_results.results }}"
+      with_items: "{{ dns_update_result.results }}"
       when: item.failed
