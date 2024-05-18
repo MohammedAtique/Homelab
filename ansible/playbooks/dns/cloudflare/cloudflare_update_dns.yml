@@ -38,11 +38,14 @@
         cloudflare_zone_id: "{{ (zones_response.json.result | selectattr('name', 'equalto', cloudflare_domain) | list)[0].id }}" # Selects the first zone. Adjust for multi-zone setup.
 
     - name: Get all DNS records
-      community.general.cloudflare_dns:
-        zone: "{{ cloudflare_domain }}"
-        api_token: "{{ cloudflare_api_token }}"
-        type: A
-        value: "{{ cloudflare_domain }}"
+      uri:
+        url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone_id }}/dns_records"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ cloudflare_api_token }}"
+          Content-Type: "application/json"
+        return_content: yes
+        status_code: 200
       register: dns_records
 
     - name: Update DNS records
