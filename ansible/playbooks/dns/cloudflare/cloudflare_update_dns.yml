@@ -29,6 +29,10 @@
         return_content: yes
       register: zones_response
 
+    - name: Set Cloudflare domain fact
+      set_fact:
+        cloudflare_domain: "{{ (zones_response.json.result | map(attribute='name') | list)[0] }}"  # Selects the first domain. Adjust for multi-domain setup.
+
     - name: Set Cloudflare zone ID fact
       set_fact:
         cloudflare_zone_id: "{{ (zones_response.json.result | selectattr('name', 'equalto', cloudflare_domain) | list)[0].id }}" # Selects the first zone. Adjust for multi-zone setup.
@@ -51,7 +55,7 @@
     - name: Update DNS records
       community.general.cloudflare_dns:
         api_token: "{{ cloudflare_api_token }}"
-        zone: "{{ item.zone_name }}"
+        zone: "{{ cloudflare_domain }}"
         record: "{{ item.name }}"
         type: "{{ item.type }}"
         proxied: "{{ item.proxied }}"
