@@ -46,27 +46,32 @@
           Content-Type: "application/json"
         return_content: yes
         status_code: 200
-      register: dns_records
+      register: dns_records_response
+
+    - name: Set DNS records fact
+      set_fact:
+        dns_records: "{{ dns_records_response.json.result }}"
 
     - name: Update DNS records
       community.general.cloudflare_dns:
-        zone: "{{ cloudflare_zone_id }}"
+        zone: "{{ cloudflare_domain }}"
         account_api_token: "{{ cloudflare_api_token }}"
         record: "{{ item.name }}"
-        type: "{{ item.type }}"
+        type: "A"
+        proxied: true
         value: "{{ new_ip_address }}"
         state: present
-      with_items: "{{ dns_records.record }}"
+      with_items: "{{ dns_records }}"
       register: dns_update_result
 
     - name: Print DNS update result
       debug:
-        msg: "DNS record for {{ item.record }} updated successfully."
-      with_items: "{{ dns_update_result.results }}"
+        msg: "DNS record for {{ item.item.name }} updated successfully."
+      with_items: "{{ dns_update_results.results }}"
       when: item.changed
 
     - name: Print DNS update failure
       debug:
-        msg: "Failed to update DNS record for {{ item.record }}."
-      with_items: "{{ dns_update_result.results }}"
+        msg: "Failed to update DNS record for {{ item.item.name }}."
+      with_items: "{{ dns_update_results.results }}"
       when: item.failed
