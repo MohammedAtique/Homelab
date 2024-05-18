@@ -9,15 +9,15 @@
   tasks:
     - name: Get the current public IP address
       uri:
-        url: "https://ifconfig.me/ip"
+        url: "https://cloudflare.com/cdn-cgi/trace"
         return_content: yes
         headers:
           Accept: "text/plain"
-      register: ifconfig_me_response
+      register: trace_response
 
-    - name: Set new IP address fact
+    - name: Parse IP address from trace response
       set_fact:
-        new_ip_address: "{{ ifconfig_me_response.content.strip() }}"
+        new_ip_address: "{{ trace_response.content.split('\n') | select('match', '^ip=') | first | regex_replace('^ip=', '') }}"
 
     - name: Get Cloudflare domains
       uri:
@@ -28,10 +28,6 @@
           Content-Type: "application/json"
         return_content: yes
       register: zones_response
-
-    - name: Set Cloudflare domain fact
-      set_fact:
-        cloudflare_domain: "{{ (zones_response.json.result | map(attribute='name') | list)[0] }}"  # Selects the first domain. Adjust for multi-domain setup.
 
     - name: Set Cloudflare zone ID fact
       set_fact:
@@ -48,24 +44,22 @@
         status_code: 200
       register: dns_records_response
 
-    - name: Set DNS records fact
+    - name: Set A records to update fact
       set_fact:
-        dns_records: "{{ dns_records_response.json.result }}"
-
-    - name: Filter A records to update
-      set_fact:
-        a_records_to_update: "{{ dns_records | selectattr('type', 'equalto', 'A') | list }}"
+        a_records_to_update: "{{ dns_records_response.json.result | selectattr('type', 'equalto', 'A') | list }}"
 
     - name: Update DNS records
       community.general.cloudflare_dns:
-        zone: "{{ cloudflare_domain }}"
         api_token: "{{ cloudflare_api_token }}"
+        zone: "{{ item.zone_name }}"
         record: "{{ item.name }}"
-        type: "A"
-        proxied: true
+        type: "{{ item.type }}"
+        proxied: "{{ item.proxied }}"
+        comment: "{{ item.comment }}"
         value: "{{ new_ip_address }}"
+        solo: true
         state: present
-      with_items: "{{ dns_records }}"
+      with_items: "{{ a_records_to_update }}"
       register: dns_update_result
 
     - name: Print DNS update result
