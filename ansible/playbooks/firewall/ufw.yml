@@ -62,11 +62,7 @@
       when: ansible_ping_result.ping == 'pong'
 
     - name: Remove old Cloudflare IPs from UFW
-      ufw:
-        state: absent
-        src: "{{ item }}"
-        port: 443
-        proto: tcp
+      command: "ufw delete allow from {{ item }} to any port 443 proto tcp"
       loop: "{{ ufw_443_ips }}"
       when: item not in cloudflare_ip_list
       ignore_errors: yes
