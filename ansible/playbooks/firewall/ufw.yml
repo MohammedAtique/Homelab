@@ -63,7 +63,7 @@
 
     - name: Remove old Cloudflare IPs from UFW
       ufw:
-        rule: delete
+        state: absent
         src: "{{ item }}"
         port: 443
         proto: tcp
