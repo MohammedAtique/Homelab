@@ -58,7 +58,7 @@
 
     - name: Extract IPs from UFW rules
       set_fact:
-         ufw_443_ips: "{{ ufw_443_rules | map('split') | map('last') | map('trim') | map('regex_replace', ' # Cloudflare IP', '') | list }}"
+        ufw_443_ips: "{{ ufw_443_rules | map('regex_search', '([0-9a-fA-F:.]+/[0-9]+)') | select('string') | list }}"
       when: ansible_ping_result.ping == 'pong'
 
     - name: Remove old Cloudflare IPs from UFW
