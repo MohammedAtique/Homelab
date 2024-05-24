@@ -41,6 +41,36 @@
       register: cloudflare_ips
       when: ansible_ping_result.ping == 'pong'
 
+    - name: Extract Cloudflare IPs into a single list
+      set_fact:
+        cloudflare_ip_list: "{{ cloudflare_ips.results | map(attribute='content') | map('split', '\n') | list | flatten | reject('equalto', '') | list }}"
+      when: ansible_ping_result.ping == 'pong'
+
+    - name: Get existing UFW rules
+      command: ufw status numbered
+      register: ufw_status
+      when: ansible_ping_result.ping == 'pong'
+
+    - name: Parse UFW rules for port 443
+      set_fact:
+        ufw_443_rules: "{{ ufw_status.stdout_lines | select('search', '443/tcp') | list }}"
+      when: ansible_ping_result.ping == 'pong'
+
+    - name: Extract IPs from UFW rules
+      set_fact:
+        ufw_443_ips: "{{ ufw_443_rules | map('regex_search', '([0-9a-fA-F.:/]+)') | list }}"
+      when: ansible_ping_result.ping == 'pong'
+
+    - name: Remove old Cloudflare IPs from UFW
+      ufw:
+        rule: delete
+        src: "{{ item }}"
+        port: 443
+        proto: tcp
+      loop: "{{ ufw_443_ips }}"
+      when: item not in cloudflare_ip_list
+      ignore_errors: yes
+
     - name: Allow incoming traffic on port 443 from Cloudflare IPs
       ufw:
         rule: allow
@@ -48,7 +78,7 @@
         port: 443
         proto: tcp
         comment: "Cloudflare IP"
-      loop: "{{ cloudflare_ips.results | map(attribute='content') | map('split', '\n') | list | flatten }}"
+      loop: "{{ cloudflare_ip_list }}"
       when: ansible_ping_result.ping == 'pong'
 
     - name: Enable UFW
