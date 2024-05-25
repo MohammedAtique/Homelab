@@ -1,8 +1,23 @@
 ---
-- name: Set timezone on Linux machines
+- name: Ensure the timezone is set to Asia/Kolkata on Linux machines
   hosts: all
   become: yes
   tasks:
-    - name: Set the timezone
+    - name: Get current timezone
+      ansible.builtin.command:
+        cmd: timedatectl show --property=Timezone --value
+      register: current_timezone
+
+    - name: Set the timezone to Asia/Kolkata
       ansible.builtin.timezone:
         name: Asia/Kolkata
+      when: current_timezone.stdout.strip() != 'Asia/Kolkata'
+      notify:
+        - Restart cron service
+
+  handlers:
+    - name: Restart cron service
+      ansible.builtin.service:
+        name: cron
+        state: restarted
+      when: ansible_os_family == 'Debian'
