@@ -1,0 +1,91 @@
+---
+- name: Update and Upgrade Ubuntu Servers
+  hosts: test
+  become: yes 
+
+  vars:
+    telegram_bot_token_1: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN_1') }}"
+    telegram_chat_id_1: "{{ lookup('env', 'TELEGRAM_CHAT_ID_1') }}"
+
+  tasks:
+    - name: Check if server is pingable before starting
+      ansible.builtin.ping:
+      register: ping_before
+
+    - name: Stop execution if server is not reachable before starting
+      meta: end_play
+      when: ping_before is failed
+
+    - name: Gather package facts before update
+      package_facts:
+        manager: apt
+
+    - name: Store before upgrade package versions
+      set_fact:
+        before_upgrade: "{{ ansible_facts.packages }}"
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600 
+
+    - name: Upgrade all packages to the latest version
+      apt:
+        upgrade: 'dist'
+      register: upgrade_output
+
+    - name: Gather package facts after update
+      package_facts:
+        manager: apt
+
+    - name: Store after upgrade package versions
+      set_fact:
+        after_upgrade: "{{ ansible_facts.packages }}"
+
+    - name: Check if a reboot is needed
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Conditionally reboot the server
+      when: reboot_required.stat.exists
+      block:
+        - name: Reboot the machine
+          reboot:
+            msg: "Reboot initiated by Ansible due to system updates"
+            connect_timeout: 5
+            reboot_timeout: 600
+            pre_reboot_delay: 0
+            post_reboot_delay: 30
+            test_command: uptime
+
+        - name: Wait for system to come back
+          wait_for_connection:
+            delay: 30
+            timeout: 300
+
+        - name: Check if server is pingable after reboot
+          ansible.builtin.ping:
+          register: ping_after_reboot
+
+        - name: Stop execution if server is not reachable after reboot
+          meta: end_play
+          when: ping_after_reboot is failed
+
+    - name: Send Telegram notification about updates
+      telegram:
+        token: "{{ telegram_bot_token_1 }}"
+        api_args:
+          chat_id: "{{ telegram_chat_id_1 }}"
+          parse_mode: "markdown"
+          text: "Package upgrades completed on {{ ansible_hostname }}:\n{{ message if message is defined else 'No changes detected.' }}"
+          disable_web_page_preview: true
+          disable_notification: false
+
+    - name: Autoremove unused dependencies
+      apt:
+        autoremove: yes
+
+    - name: Clean up APT cache
+      apt:
+        autoclean: yes
