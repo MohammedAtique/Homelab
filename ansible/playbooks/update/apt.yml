@@ -6,6 +6,7 @@
   vars:
     telegram_bot_token_1: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN_1') }}"
     telegram_chat_id_1: "{{ lookup('env', 'TELEGRAM_CHAT_ID_1') }}"
+    updates_file_path: "/tmp/package_updates.txt"
 
   tasks:
     - name: Check if server is pingable before starting
@@ -78,20 +79,43 @@
       loop: "{{ before_upgrade.keys() | intersect(after_upgrade.keys()) }}"
       when: "before_upgrade[item][0].version != after_upgrade[item][0].version"
 
-    - name: Format message for Telegram
-      set_fact:
-        message: "{{ message | default('') }}{{ item.key }}: {{ item.value.before }} -> {{ item.value.after }}\n"
-      loop: "{{ upgraded_packages | dict2items }}"
+    - name: Write updates to a file
+      copy:
+        dest: "{{ updates_file_path }}"
+        content: |
+          Package upgrades completed on {{ ansible_hostname }}:
+          {% for pkg, versions in upgraded_packages.items() %}
+          {{ pkg }}: {{ versions.before }} -> {{ versions.after }}
+          {% endfor %}
+      delegate_to: localhost
 
-    - name: Send Telegram notification about updates
+    - name: Send notification about upgrade completion
       telegram:
         token: "{{ telegram_bot_token_1 }}"
         api_args:
           chat_id: "{{ telegram_chat_id_1 }}"
+          text: "Package upgrades completed on {{ ansible_hostname }}. Detailed report will follow."
           parse_mode: "markdown"
-          text: "Package upgrades completed on {{ ansible_hostname }}:\n{{ message if message is defined else 'No changes detected.' }}"
           disable_web_page_preview: true
           disable_notification: false
+
+    - name: Upload package updates file to Telegram using curl
+      ansible.builtin.shell:
+        cmd: >
+          curl -F "chat_id={{ telegram_chat_id_1 }}" -F "document=@{{ updates_file_path }}" https://api.telegram.org/bot{{ telegram_bot_token_1 }}/sendDocument
+      args:
+        executable: /bin/bash
+      register: curl_result
+      ignore_errors: true
+
+    - name: Check curl command execution
+      fail:
+        msg: "Failed to send the document to Telegram. Curl command failed with error: {{ curl_result.stderr }}"
+      when: curl_result.rc != 0
+
+    - name: Success message if upload succeeds
+      debug:
+        msg: "Document successfully uploaded to Telegram."
 
     - name: Autoremove unused dependencies
       apt:
