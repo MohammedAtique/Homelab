@@ -27,7 +27,7 @@
     - name: Update apt cache
       apt:
         update_cache: yes
-        cache_valid_time: 3600 
+        cache_valid_time: 360
 
     - name: Upgrade all packages to the latest version
       apt:
@@ -71,6 +71,17 @@
         - name: Stop execution if server is not reachable after reboot
           meta: end_play
           when: ping_after_reboot is failed
+
+    - name: Find upgraded packages
+      set_fact:
+        upgraded_packages: "{{ upgraded_packages | default({}) | combine({item: {'before': before_upgrade[item][0].version, 'after': after_upgrade[item][0].version}}) }}"
+      loop: "{{ before_upgrade.keys() | intersect(after_upgrade.keys()) }}"
+      when: "before_upgrade[item][0].version != after_upgrade[item][0].version"
+
+    - name: Format message for Telegram
+      set_fact:
+        message: "{{ message | default('') }}{{ item.key }}: {{ item.value.before }} -> {{ item.value.after }}\n"
+      loop: "{{ upgraded_packages | dict2items }}"
 
     - name: Send Telegram notification about updates
       telegram:
