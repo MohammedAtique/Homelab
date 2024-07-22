@@ -73,9 +73,13 @@
           meta: end_play
           when: ping_after_reboot is failed
 
+    - name: Initialize upgraded_packages
+      set_fact:
+        upgraded_packages: {}
+
     - name: Find upgraded packages
       set_fact:
-        upgraded_packages: "{{ upgraded_packages | default({}) | combine({item: {'before': before_upgrade[item][0].version, 'after': after_upgrade[item][0].version}}) }}"
+        upgraded_packages: "{{ upgraded_packages | combine({item: {'before': before_upgrade[item][0].version, 'after': after_upgrade[item][0].version}}) }}"
       loop: "{{ before_upgrade.keys() | intersect(after_upgrade.keys()) }}"
       when: "before_upgrade[item][0].version != after_upgrade[item][0].version"
 
