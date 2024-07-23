@@ -1,6 +1,7 @@
 ---
 - name: Update and Upgrade Ubuntu Servers
-  hosts: test
+  hosts: all
+  serial: 1
   become: yes 
 
   vars:
