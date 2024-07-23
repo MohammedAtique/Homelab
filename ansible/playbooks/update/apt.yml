@@ -111,6 +111,7 @@
       args:
         executable: /bin/bash
       delegate_to: localhost
+      become: false
       register: curl_result
       ignore_errors: true
 
