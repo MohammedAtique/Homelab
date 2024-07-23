@@ -6,7 +6,7 @@
   vars:
     telegram_bot_token_1: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN_1') }}"
     telegram_chat_id_1: "{{ lookup('env', 'TELEGRAM_CHAT_ID_1') }}"
-    updates_file_path: "/tmp/package_updates.txt"
+    updates_file_path: "/tmp/{{ ansible_hostname }}_updates.txt"
 
   tasks:
     - name: Check if server is pingable before starting
@@ -29,11 +29,31 @@
       apt:
         update_cache: yes
         cache_valid_time: 360
+      register: update_cache
+      retries: 3
+      delay: 5
+      until: update_cache is succeeded
 
     - name: Upgrade all packages to the latest version
       apt:
         upgrade: 'dist'
       register: upgrade_output
+      retries: 3
+      delay: 5
+      until: upgrade_output is succeeded
+
+    - name: Notify failure to update cache
+      telegram:
+        token: "{{ telegram_bot_token_1 }}"
+        api_args:
+          chat_id: "{{ telegram_chat_id_1 }}"
+          text: "Failed to update APT cache after multiple retries on {{ ansible_hostname }}."
+          parse_mode: "markdown"
+          disable_web_page_preview: true
+          disable_notification: false
+      when: update_cache is failed
+      delegate_to: localhost
+      become: false
 
     - name: Gather package facts after update
       package_facts:
@@ -94,35 +114,34 @@
       delegate_to: localhost
       become: false
 
-    - name: Send notification about upgrade completion
-      telegram:
-        token: "{{ telegram_bot_token_1 }}"
-        api_args:
-          chat_id: "{{ telegram_chat_id_1 }}"
-          text: "Package upgrades completed on {{ ansible_hostname }}. Detailed report will follow."
-          parse_mode: "markdown"
-          disable_web_page_preview: true
-          disable_notification: false
-
-    - name: Upload package updates file to Telegram
+    - name: Send notification and upload package updates file
       ansible.builtin.shell:
         cmd: >
+          curl -s -X POST https://api.telegram.org/bot{{ telegram_bot_token_1 }}/sendMessage -d chat_id={{ telegram_chat_id_1 }} -d text="Package upgrades completed on {{ ansible_hostname }}. Detailed report will follow." -d parse_mode=markdown -d disable_web_page_preview=true &&
           curl -F "document=@{{ updates_file_path }}" https://api.telegram.org/bot{{ telegram_bot_token_1 }}/sendDocument?chat_id={{ telegram_chat_id_1 }}
       args:
         executable: /bin/bash
       delegate_to: localhost
       become: false
-      register: curl_result
+      register: telegram_result
       ignore_errors: true
 
-    - name: Check curl command execution
+    - name: Check execution result
       fail:
-        msg: "Failed to send the document to Telegram. Curl command failed with error: {{ curl_result.stderr }}"
-      when: curl_result.rc != 0
+        msg: "Failed to send message or upload document to Telegram. Error: {{ telegram_result.stderr }}"
+      when: telegram_result.rc != 0
 
     - name: Success message if upload succeeds
       debug:
         msg: "Document successfully uploaded to Telegram."
+
+    - name: Remove the updates file
+      ansible.builtin.file:
+        path: "{{ updates_file_path }}"
+        state: absent
+      when: telegram_result.rc == 0
+      delegate_to: localhost
+      become: false
 
     - name: Autoremove unused dependencies
       apt:
@@ -131,3 +150,4 @@
     - name: Clean up APT cache
       apt:
         autoclean: yes
+        
