@@ -92,7 +92,7 @@
           {{ pkg }}: {{ versions.before }} -> {{ versions.after }}
           {% endfor %}
       delegate_to: localhost
-      become: false
+     # become: false
 
     - name: Send notification about upgrade completion
       telegram:
