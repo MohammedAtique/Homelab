@@ -104,10 +104,10 @@
           disable_web_page_preview: true
           disable_notification: false
 
-    - name: Upload package updates file to Telegram using curl
+    - name: Upload package updates file to Telegram
       ansible.builtin.shell:
         cmd: >
-          curl -F "chat_id={{ telegram_chat_id_1 }}" -F "document=@{{ updates_file_path }}" https://api.telegram.org/bot{{ telegram_bot_token_1 }}/sendDocument
+          curl -F "document=@{{ updates_file_path }}" https://api.telegram.org/bot{{ telegram_bot_token_1 }}/sendDocument?chat_id={{ telegram_chat_id_1 }}
       args:
         executable: /bin/bash
       register: curl_result
