@@ -92,7 +92,7 @@
           {{ pkg }}: {{ versions.before }} -> {{ versions.after }}
           {% endfor %}
       delegate_to: localhost
-     # become: false
+      become: false
 
     - name: Send notification about upgrade completion
       telegram:
@@ -110,6 +110,7 @@
           curl -F "document=@{{ updates_file_path }}" https://api.telegram.org/bot{{ telegram_bot_token_1 }}/sendDocument?chat_id={{ telegram_chat_id_1 }}
       args:
         executable: /bin/bash
+      delegate_to: localhost
       register: curl_result
       ignore_errors: true
 
