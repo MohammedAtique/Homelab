@@ -63,6 +63,72 @@
       set_fact:
         after_upgrade: "{{ ansible_facts.packages }}"
 
+    - name: Initialize upgraded_packages
+      set_fact:
+        upgraded_packages: {}
+
+    - name: Find upgraded packages
+      set_fact:
+        upgraded_packages: "{{ upgraded_packages | combine({item: {'before': before_upgrade[item][0].version, 'after': after_upgrade[item][0].version}}) }}"
+      loop: "{{ before_upgrade.keys() | intersect(after_upgrade.keys()) }}"
+      when: "before_upgrade[item][0].version != after_upgrade[item][0].version"
+
+    - name: Check if updates are available
+      set_fact:
+        updates_available: "{{ upgraded_packages | length > 0 }}"
+
+    - name: Write updates to a file
+      copy:
+        dest: "{{ updates_file_path }}"
+        content: |
+          Package upgrades completed on {{ ansible_hostname }}:
+          {% for pkg, versions in upgraded_packages.items() %}
+          {{ pkg }}: {{ versions.before }} -> {{ versions.after }}
+          {% endfor %}
+      delegate_to: localhost
+      become: false
+      when: updates_available
+
+    - name: Send notification of no updates available
+      ansible.builtin.shell:
+        cmd: >
+          curl -s -X POST https://api.telegram.org/bot{{ telegram_bot_token_1 }}/sendMessage -d chat_id={{ telegram_chat_id_1 }} -d text="No updates available for {{ ansible_hostname }} currently." -d parse_mode=markdown -d disable_web_page_preview=true
+      when: not updates_available
+      delegate_to: localhost
+      become: false
+      ignore_errors: true
+
+    - name: Send notification and upload package updates file
+      ansible.builtin.shell:
+        cmd: >
+          curl -s -X POST https://api.telegram.org/bot{{ telegram_bot_token_1 }}/sendMessage -d chat_id={{ telegram_chat_id_1 }} -d text="Package upgrades completed on {{ ansible_hostname }}. Detailed report will follow." -d parse_mode=markdown -d disable_web_page_preview=true &&
+          curl -F "document=@{{ updates_file_path }}" https://api.telegram.org/bot{{ telegram_bot_token_1 }}/sendDocument?chat_id={{ telegram_chat_id_1 }}
+      args:
+        executable: /bin/bash
+      delegate_to: localhost
+      become: false
+      register: telegram_result
+      when: updates_available
+      ignore_errors: true
+
+    - name: Check execution result
+      fail:
+        msg: "Failed to send message or upload document to Telegram. Error: {{ telegram_result.stderr }}"
+      when: telegram_result.rc != 0 and updates_available
+
+    - name: Success message if upload succeeds
+      debug:
+        msg: "Document successfully uploaded to Telegram."
+      when: telegram_result.rc == 0 and updates_available
+
+    - name: Remove the updates file
+      ansible.builtin.file:
+        path: "{{ updates_file_path }}"
+        state: absent
+      when: telegram_result.rc == 0
+      delegate_to: localhost
+      become: false
+
     - name: Check if a reboot is needed
       stat:
         path: /var/run/reboot-required
@@ -93,56 +159,6 @@
           meta: end_play
           when: ping_after_reboot is failed
 
-    - name: Initialize upgraded_packages
-      set_fact:
-        upgraded_packages: {}
-
-    - name: Find upgraded packages
-      set_fact:
-        upgraded_packages: "{{ upgraded_packages | combine({item: {'before': before_upgrade[item][0].version, 'after': after_upgrade[item][0].version}}) }}"
-      loop: "{{ before_upgrade.keys() | intersect(after_upgrade.keys()) }}"
-      when: "before_upgrade[item][0].version != after_upgrade[item][0].version"
-
-    - name: Write updates to a file
-      copy:
-        dest: "{{ updates_file_path }}"
-        content: |
-          Package upgrades completed on {{ ansible_hostname }}:
-          {% for pkg, versions in upgraded_packages.items() %}
-          {{ pkg }}: {{ versions.before }} -> {{ versions.after }}
-          {% endfor %}
-      delegate_to: localhost
-      become: false
-
-    - name: Send notification and upload package updates file
-      ansible.builtin.shell:
-        cmd: >
-          curl -s -X POST https://api.telegram.org/bot{{ telegram_bot_token_1 }}/sendMessage -d chat_id={{ telegram_chat_id_1 }} -d text="Package upgrades completed on {{ ansible_hostname }}. Detailed report will follow." -d parse_mode=markdown -d disable_web_page_preview=true &&
-          curl -F "document=@{{ updates_file_path }}" https://api.telegram.org/bot{{ telegram_bot_token_1 }}/sendDocument?chat_id={{ telegram_chat_id_1 }}
-      args:
-        executable: /bin/bash
-      delegate_to: localhost
-      become: false
-      register: telegram_result
-      ignore_errors: true
-
-    - name: Check execution result
-      fail:
-        msg: "Failed to send message or upload document to Telegram. Error: {{ telegram_result.stderr }}"
-      when: telegram_result.rc != 0
-
-    - name: Success message if upload succeeds
-      debug:
-        msg: "Document successfully uploaded to Telegram."
-
-    - name: Remove the updates file
-      ansible.builtin.file:
-        path: "{{ updates_file_path }}"
-        state: absent
-      when: telegram_result.rc == 0
-      delegate_to: localhost
-      become: false
-
     - name: Autoremove unused dependencies
       apt:
         autoremove: yes
@@ -150,4 +166,3 @@
     - name: Clean up APT cache
       apt:
         autoclean: yes
-        
