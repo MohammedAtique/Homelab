@@ -113,19 +113,19 @@
 
     - name: Check execution result
       fail:
-        msg: "Failed to send message or upload document to Telegram. Error: {{ telegram_result.stderr }}"
-      when: telegram_result.rc != 0 and updates_available
+        msg: "Failed to send message or upload document to Telegram. Error: {{ (telegram_result | default({})).stderr }}"
+      when: (telegram_result | default({})).rc is defined and (telegram_result | default({})).rc != 0 and updates_available
 
     - name: Success message if upload succeeds
       debug:
         msg: "Document successfully uploaded to Telegram."
-      when: telegram_result.rc == 0 and updates_available
+      when: (telegram_result | default({})).rc is defined and (telegram_result | default({})).rc == 0 and updates_available
 
     - name: Remove the updates file
       ansible.builtin.file:
         path: "{{ updates_file_path }}"
         state: absent
-      when: telegram_result.rc == 0
+      when: (telegram_result | default({})).rc is defined and (telegram_result | default({})).rc == 0
       delegate_to: localhost
       become: false
 
