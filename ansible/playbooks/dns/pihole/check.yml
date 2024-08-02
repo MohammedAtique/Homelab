@@ -4,7 +4,7 @@
   become: yes
 
   vars:
-    telegram_bot_token: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN) }}"
+    telegram_bot_token: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN') }}"
     telegram_chat_id: "{{ lookup('env', 'TELEGRAM_CHAT_ID') }}"
     pihole_service_name: "pihole-FTL.service"
 
