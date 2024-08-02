@@ -5,8 +5,8 @@
   become: yes 
 
   vars:
-    telegram_bot_token_1: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN_1') }}"
-    telegram_chat_id_1: "{{ lookup('env', 'TELEGRAM_CHAT_ID_1') }}"
+    telegram_bot_token_1: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN') }}"
+    telegram_chat_id_1: "{{ lookup('env', 'TELEGRAM_CHAT_ID') }}"
     updates_file_path: "/tmp/{{ ansible_hostname }}_updates.txt"
 
   tasks:
