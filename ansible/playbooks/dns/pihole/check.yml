@@ -4,10 +4,8 @@
   become: yes
 
   vars:
-    telegram_bot_token_1: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN_1') }}"
-    telegram_chat_id_1: "{{ lookup('env', 'TELEGRAM_CHAT_ID_1') }}"
-    telegram_bot_token_2: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN_2') }}"
-    telegram_chat_id_2: "{{ lookup('env', 'TELEGRAM_CHAT_ID_2') }}"
+    telegram_bot_token: "{{ lookup('env', 'TELEGRAM_BOT_TOKEN) }}"
+    telegram_chat_id: "{{ lookup('env', 'TELEGRAM_CHAT_ID') }}"
     pihole_service_name: "pihole-FTL.service"
 
   tasks:
@@ -29,9 +27,9 @@
 
     - name: Send Telegram notification if Pi-hole service is down
       telegram:
-        token: "{{ telegram_bot_token_2 }}"
+        token: "{{ telegram_bot_token }}"
         api_args:
-          chat_id: "{{ telegram_chat_id_2 }}"
+          chat_id: "{{ telegram_chat_id }}"
           parse_mode: "markdown"
           text: "Pi-hole on {{ ansible_hostname }} is not running 🔴"
           disable_web_page_preview: true
@@ -46,9 +44,9 @@
 
     - name: Send Telegram notification about updates
       telegram:
-        token: "{{ telegram_bot_token_1 }}"
+        token: "{{ telegram_bot_token }}"
         api_args:
-          chat_id: "{{ telegram_chat_id_1 }}"
+          chat_id: "{{ telegram_chat_id }}"
           parse_mode: "markdown"
           text: |
             Pi-hole updates available on {{ ansible_hostname }}:
